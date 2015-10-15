@@ -22,6 +22,8 @@ class coolsms
 	private $result;
 	private $basecamp;
 	private $user_agent;
+	private $error;
+
 
 	public function __construct($api_key, $api_secret, $basecamp=false)
 	{
@@ -31,27 +33,37 @@ class coolsms
 			$this->basecamp = true;
 		}
 		else
+		{
 			$this->api_key = $api_key;
+		}
 
 		$this->api_secret = $api_secret;
 		$this->user_agent = $_SERVER['HTTP_USER_AGENT'];
 	}
 
+	/**
+	 * process curl
+	 */
 	public function curlProcess()
 	{
 		$ch = curl_init(); 
-		// 1 = POST , 0 = GET
-		if($this->method==1)
+		// Set host. 1 = POST , 0 = GET
+		if($this->method==1) 
+		{
 			$host = sprintf("%s%s/%s/%s", $this->host, $this->resource, $this->version, $this->path);
-		elseif($this->method==0)
+		}
+		else if($this->method==0)
+		{
 			$host = sprintf("%s%s/%s/%s?%s", $this->host, $this->resource, $this->version, $this->path, $this->content);
+		}
 
 		curl_setopt($ch, CURLOPT_URL, $host);
 		curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, FALSE); 
 		curl_setopt($ch, CURLOPT_SSLVERSION,3); // SSL 버젼 (https 접속시에 필요)
 		curl_setopt($ch, CURLOPT_HEADER, 0); // 헤더 출력 여부
 		curl_setopt($ch, CURLOPT_POST, $this->method); // Post Get 접속 여부
-		//Set POST DATA
+
+		// Set POST DATA
 		if($this->method)
 		{
 			curl_setopt($ch, CURLOPT_HTTPHEADER, array("Content-Type:multipart/form-data"));
@@ -61,15 +73,18 @@ class coolsms
 		curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1); // 결과값을 받을것인지
 		
 		$this->result = json_decode(curl_exec($ch));
-		//Handle errors
-		if(curl_errno($ch))
-		{
-			//$this->setError('-1', curl_error($ch));
-			echo "CURL_ERROR : ".curl_error($ch);
-		}
+		// Check coolsms error code
+		if($this->result->code) $this->error = 'Code : ' . $this->result->code . ' Message : ' . $this->result->message;
+
+		// Check connect errors
+		if(curl_errno($ch)) $this->error = curl_error($ch);
+
 		curl_close ($ch);
 	}
 
+	/**
+	 * set http body content
+	 */
 	private function setContent($options)
 	{
 		if($this->method)
@@ -90,11 +105,17 @@ class coolsms
 		}
 	}
 
+	/**
+	 * make a signature with hash_hamac then return the signature
+	 */
 	private function getSignature()
 	{
 		return hash_hmac('md5', (string)$this->timestamp.$this->salt, $this->api_secret);
 	}
 
+	/**
+	 * set authenticate information
+	 */
 	private function addInfos($options)
 	{
 		$this->salt = uniqid();
@@ -107,9 +128,13 @@ class coolsms
 		$options->salt = $this->salt;
 		$options->timestamp = $this->timestamp;
 		if($this->basecamp)
+		{
 			$options->coolsms_user = $this->coolsms_user;
+		}
 		else
+		{
 			$options->api_key = $this->api_key;
+		}
 		$options->signature = $this->getSignature();
 		$this->setContent($options);
 		$this->curlProcess();
@@ -131,7 +156,10 @@ class coolsms
 		$this->version = $version;
 	}
 
-	private function getResult()
+	/**
+	 * return result
+	 */
+	public function getResult()
 	{
 		return $this->result;
 	}
@@ -146,7 +174,7 @@ class coolsms
 	{
 		$this->setMethod('sms', 'send', 1);
 		$this->addInfos($options);	
-		return $this->getResult();
+		return $this;
 	}
 	
 	/**
@@ -161,7 +189,7 @@ class coolsms
 			$options = new stdClass();
 		$this->setMethod('sms', 'sent', 0);
 		$this->addInfos($options);	
-		return $this->getResult();
+		return $this;
 	}
 
 	/**
@@ -173,7 +201,7 @@ class coolsms
 	{
 		$this->setMethod('sms', 'cancel', 1);
 		$this->addInfos($options);	
-		return $this->getResult();
+		return $this;
 	}
 
 	/**
@@ -185,7 +213,7 @@ class coolsms
 	{
 		$this->setMethod('sms', 'balance', 0);
 		$this->addInfos($options = new stdClass());	
-		return $this->getResult();
+		return $this;
 	}
 
 	/**
@@ -198,7 +226,7 @@ class coolsms
 	{
 		$this->setMethod('sms', 'status', 0);
 		$this->addInfos($options);	
-		return $this->getResult();
+		return $this;
 	}
 
 	/**
@@ -210,7 +238,7 @@ class coolsms
 	{
 		$this->setMethod('senderid', 'register', 1, "1.1");
 		$this->addInfos($options);
-		return $this->getResult();
+		return $this;
 	}
 
 	/**
@@ -222,7 +250,7 @@ class coolsms
 	{
 		$this->setMethod('senderid', 'verify', 1, "1.1");
 		$this->addInfos($options);
-		return $this->getResult();
+		return $this;
 	}
 
 	/**
@@ -234,7 +262,7 @@ class coolsms
 	{
 		$this->setMethod('senderid', 'delete', 1, "1.1");
 		$this->addInfos($options);
-		return $this->getResult();
+		return $this;
 	}
 
 	/**
@@ -246,7 +274,7 @@ class coolsms
 	{
 		$this->setMethod('senderid', 'list', 0, "1.1");
 		$this->addInfos($options);
-		return $this->getResult();
+		return $this;
 	}
 
 	/**
@@ -258,7 +286,7 @@ class coolsms
 	{
 		$this->setMethod('senderid', 'set_default', 1, "1.1");
 		$this->addInfos($options);
-		return $this->getResult();
+		return $this;
 	}
 
 	/**
@@ -270,31 +298,12 @@ class coolsms
 	{
 		$this->setMethod('senderid', 'get_default', 0, "1.1");
 		$this->addInfos($options);
-		return $this->getResult();
+		return $this;
 	}
 	
-	private function objectToArray($d) {
-		if (is_object($d)) {
-			// Gets the properties of the given object
-			// with get_object_vars function
-			$d = get_object_vars($d);
-		}
- 
-		if (is_array($d)) 
-		{
-			/*
-			* Return array converted to object
-			* Using __FUNCTION__ (Magic constant)
-			* for recursive call
-			*/
-			return array_map(__FUNCTION__, $d);
-		}
-		else 
-		{
-			// Return array
-			return $d;
-		}
-	}
+	/**
+	 * return user's current OS
+	 */
 	function getOS() { 
 		$user_agent = $this->user_agent;
 		$os_platform    =   "Unknown OS Platform";
@@ -332,6 +341,9 @@ class coolsms
 		return $os_platform;
 	}
 
+	/**
+	 * return user's current browser
+	 */
 	function getBrowser() {
 		$user_agent = $this->user_agent;
 		$browser        =   "Unknown Browser";
@@ -354,4 +366,3 @@ class coolsms
 		return $browser;
 	}
 }
-?>
