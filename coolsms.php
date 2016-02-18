@@ -24,7 +24,6 @@ class coolsms
 	private $user_agent;
 	private $error;
 
-
 	public function __construct($api_key, $api_secret, $basecamp=false)
 	{
 		if($basecamp)
