@@ -7,7 +7,7 @@
  *
  */
 
-include_once "../src/coolsms.php";
+include_once "coolsms.php";
 
 
 /*
@@ -18,23 +18,13 @@ $apisecret = '#ENTER_YOUR_OWN#';
 
 //initiate rest api sdk object
 $rest = new coolsms($apikey, $apisecret);
-$options->timestamp = (string)time();
-
-// 등록된 sender_ids 전체 불러온후 발신번호 설정
-$senderid = $rest->get_senderid_list($options)->getResult();
-print_r($senderid);
-if(is_array($senderid) && count($senderid)) $options->from = $senderid[0]->phone_number;
-
-//기본설정된 전화번호만 불러온후 발송
-/*
-$default = $rest->get_default($options)->getResult();
-$options->from = $default->phone_number;
- */
 
 /*
  **  5 options(timestamp, to, from, type, text) are mandatory. must be filled
  */
+$options->timestamp = (string)time();
 $options->to = '01000000000';
+$options->from = '01000000000';
 $options->type = 'SMS';
 $options->text = '안녕하세요. 10000건을 20초안에 발송하는 빠르고 저렴한 CoolSMS의 테스팅 문자입니다. ';
 $options->app_version = 'test app 1.2';  //application name and version	 
@@ -57,4 +47,4 @@ $options->app_version = 'test app 1.2';  //application name and version
 //$options->sdk_version = 'PHP SDK 1.1';	//SDK version being used. SDK creates automatically if empty 
 
 $result = $rest->send($options);			
-print_r($result->getResult());
+print_r($result);

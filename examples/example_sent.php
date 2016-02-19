@@ -8,7 +8,7 @@
  */
 
 
-include_once "../src/coolsms.php";
+include_once "coolsms.php";
 
 /*
  ** api_key and api_secret can be obtained from www.coolsms.co.kr/credentials
@@ -28,5 +28,5 @@ $options->mid = 'M52CB443257C61';			//message id
 //$options->s_start = '201401070915';		//set search start date  ex) 201401070915
 //$options->s_end = '201401071230';			//set search end date	 ex) 201401071230
 
-$result = $rest->sent($options)->getResult();
+$result = $rest->sent($options);
 print_r($result);
